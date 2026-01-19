@@ -1,9 +1,29 @@
-const firebaseConfig = {
-  apiKey: "AIzaSyAdL6uRoDFjETPISecWgM83JNPwnJk-lb8",
-    authDomain: "rugby-equipment-booking.firebaseapp.com",
-    projectId: "rugby-equipment-booking",
-    storageBucket: "rugby-equipment-booking.firebasestorage.app",
-    messagingSenderId: "248587029060",
-    appId: "1:248587029060:web:63fcd7199beaea82b1ca11",
-    measurementId: "G-T86Y3LB50Z"
+const CACHE = "rugby-booking-v2";
+const ASSETS = [
+  "./",
+  "./index.html",
+  "./manifest.json"
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE).then((cache) => cache.addAll(ASSETS))
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((k) => (k !== CACHE ? caches.delete(k) : null)))
+    )
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  event.respondWith(
+    caches.match(event.request).then((cached) => cached || fetch(event.request))
+  );
+});
+
 };
+
