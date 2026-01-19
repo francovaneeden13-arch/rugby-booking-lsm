@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rugby Equipment Booking</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b5">
+  <style>
+    body { font-family: system-ui, Arial; margin: 16px; }
+    h1 { margin: 0 0 6px; }
+    .sub { color:#555; margin: 0 0 16px; }
+    .grid { display: grid; gap: 12px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 12px; }
+    .row { display:flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    button.slot {
+      border: 1px solid #ccc; border-radius: 10px; padding: 10px 12px;
+      background: #fff; cursor: pointer;
+    }
+    button.slot[disabled] { cursor:not-allowed; opacity:.6; }
+    .who { font-size: 12px; color:#444; margin-top: 6px; line-height: 1.35; }
+    .topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .pill { font-size: 12px; padding: 4px 8px; border-radius: 999px; border:1px solid #ddd; white-space: nowrap; }
+    .pill.ok { border-color:#8c8; }
+    .pill.off { border-color:#f99; }
+    .pill.lock { border-color:#f90; }
+    .pill.day { border-color:#88f; }
+    .meta { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .tabs { display:flex; gap:8px; flex-wrap:wrap; margin: 12px 0; }
+    .tab { border:1px solid #ddd; border-radius:999px; padding:8px 12px; cursor:pointer; background:#fff; }
+    .tab.active { border-color:#000; }
+    .smallbtn { border:1px solid #ddd; border-radius:10px; padding:8px 10px; background:#fff; cursor:pointer; }
+    .note { font-size: 12px; color:#444; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <h1>Rugby Equipment Booking</h1>
+      <p class="sub">Booking days: <b>Tuesday</b> and <b>Thursday</b>. Slots: 14:00–17:00 (30 min). Weekly reset. Past weeks locked.</p>
+      <div class="meta">
+        <span class="pill" id="weekPill">Week: …</span>
+        <span class="pill" id="lockPill">…</span>
+        <span class="pill day" id="dayPill">Day: …</span>
+        <span class="pill" id="netPill">…</span>
+      </div>
+      <div class="note" id="todayNote"></div>
+    </div>
+    <button class="smallbtn" id="shareBtn">Share link</button>
+  </div>
+
+  <div class="tabs" id="dayTabs"></div>
+
+  <div id="app" class="grid"></div>
+
+  <script type="module">
+    // 1) EDIT THIS: equipment list
+    const EQUIPMENT = [
+      "Rugby balls (set)",
+      "Cones (bag)",
+      "Tackle bags (2)",
+      "Hit shields (2)",
+      "Bibs (set)",
+      "Agility ladder",
+      "Markers (set)",
+      "Pump + needles"
+    ];
+
+    // 2) Allowed booking days (Tue/Thu)
+    // ISO weekday: Mon=1 ... Sun=7
+    const BOOKING_DAYS = [
+      { key: "TUE", label: "Tuesday", isoDay: 2 },
+      { key: "THU", label: "Thursday", isoDay: 4 }
+    ];
+
+    // 3) Time slots: 14:00 to 17:00 every 30 minutes
+    function slotMinutes() {
+      const out = [];
+      const start = 14 * 60, end = 17 * 60;
+      for (let m = start; m < end; m += 30) out.push(m);
+      return out;
+    }
+    const SLOT_MINUTES = slotMinutes();
+    const fmt = (m) => String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+
+    // 4) ISO helpers (week + weekday)
+    function isoWeekKey(date = new Date()) {
+      const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+      const day = d.getUTCDay() || 7; // Mon=1..Sun=7
+      d.setUTCDate(d.getUTCDate() + 4 - day); // Thursday anchor
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+      return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2,"0")}`;
+    }
+    function isoWeekdayLocal(date = new Date()) {
+      const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const dow = d.getDay(); // Sun=0..Sat=6
+      return dow === 0 ? 7 : dow; // Mon=1..Sun=7
+    }
+
+    const now = new Date();
+    const CURRENT_WEEK = isoWeekKey(now);
+    const currentIsoDay = isoWeekdayLocal(now);
+
+    // Optional URL params:
+    // ?week=2026-W04&day=TUE
+    const params = new URLSearchParams(location.search);
+    const VIEW_WEEK = params.get("week") || CURRENT_WEEK;
+
+    const requestedDayKey = params.get("day");
+    const defaultDayKey =
+      (BOOKING_DAYS.find(d => d.isoDay === currentIsoDay)?.key) || "TUE";
+    let ACTIVE_DAY_KEY = (BOOKING_DAYS.some(d => d.key === requestedDayKey) ? requestedDayKey : defaultDayKey);
+
+    const isWeekLocked = VIEW_WEEK !== CURRENT_WEEK;
+
+    // If viewing current week, only allow booking on Tue/Thu (and only on that selected day tab)
+    function isDayBookableToday(dayKey) {
+      const def = BOOKING_DAYS.find(d => d.key === dayKey);
+      if (!def) return false;
+      return def.isoDay === currentIsoDay;
+    }
+
+    // Pills
+    document.getElementById("weekPill").textContent = `Week: ${VIEW_WEEK}`;
+    const lockPill = document.getElementById("lockPill");
+    lockPill.textContent = isWeekLocked ? "Locked (view only)" : "Open week";
+    lockPill.className = "pill " + (isWeekLocked ? "lock" : "ok");
+
+    // Today note (useful for “we can start today”)
+    const todayFmt = now.toLocaleDateString(undefined, { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+    const nextBookable =
+      currentIsoDay <= 2 ? "Tuesday" :
+      currentIsoDay <= 4 ? "Thursday" : "Tuesday (next week)";
+    document.getElementById("todayNote").textContent =
+      `Today is ${todayFmt}. Booking days are Tuesday/Thursday. Next bookable day: ${nextBookable}.`;
+
+    // Share button (shares current-week link)
+    document.getElementById("shareBtn").onclick = async () => {
+      const base = location.origin + location.pathname;
+      try {
+        if (navigator.share) await navigator.share({ title: "Rugby Equipment Booking", url: base });
+        else prompt("Copy this link to WhatsApp:", base);
+      } catch {}
+    };
+
+    // Tabs
+    const tabsEl = document.getElementById("dayTabs");
+    function renderTabs() {
+      tabsEl.innerHTML = "";
+      BOOKING_DAYS.forEach(d => {
+        const b = document.createElement("button");
+        b.className = "tab" + (d.key === ACTIVE_DAY_KEY ? " active" : "");
+        const bookable = (!isWeekLocked && isDayBookableToday(d.key));
+        b.textContent = d.label + (bookable ? " (today)" : "");
+        b.onclick = () => {
+          ACTIVE_DAY_KEY = d.key;
+          setDayPill();
+          renderTabs();
+          render();
+          // keep URL tidy for sharing within staff if needed
+          history.replaceState(null, "", `?week=${encodeURIComponent(VIEW_WEEK)}&day=${encodeURIComponent(ACTIVE_DAY_KEY)}`);
+        };
+        tabsEl.appendChild(b);
+      });
+    }
+    function setDayPill() {
+      const d = BOOKING_DAYS.find(x => x.key === ACTIVE_DAY_KEY);
+      document.getElementById("dayPill").textContent = `Day: ${d ? d.label : ACTIVE_DAY_KEY}`;
+    }
+    setDayPill();
+    renderTabs();
+
+    // 5) Firebase config (paste yours)
+    const firebaseConfig = {
+      apiKey: "AIzaSyAdL6uRoDFjETPISecWgM83JNPwnJk-lb8",
+  authDomain: "rugby-equipment-booking.firebaseapp.com",
+  projectId: "rugby-equipment-booking",
+  storageBucket: "rugby-equipment-booking.firebasestorage.app",
+  messagingSenderId: "248587029060",
+  appId: "1:248587029060:web:63fcd7199beaea82b1ca11",
+  measurementId: "G-T86Y3LB50Z"
+    };
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, runTransaction, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const appFb = initializeApp(firebaseConfig);
+    const db = getFirestore(appFb);
+
+    // Doc id includes week + day + equipment index:
+    // bookings/{week}_{day}_{index} -> { equipment, week, day, slots: { "14:00": "Coach", ... } }
+    const docId = (i) => `${VIEW_WEEK}_${ACTIVE_DAY_KEY}_${i}`;
+    const docRef = (i) => doc(db, "bookings", docId(i));
+
+    const root = document.getElementById("app");
+    const state = new Map(); // i -> data
+
+    function canBookNow() {
+      if (isWeekLocked) return false;
+      // Only allow booking if today matches the active day (Tue/Thu)
+      return isDayBookableToday(ACTIVE_DAY_KEY);
+    }
+
+    function render() {
+      root.innerHTML = "";
+
+      const header = document.createElement("div");
+      header.className = "card";
+      const dayLabel = BOOKING_DAYS.find(d => d.key === ACTIVE_DAY_KEY)?.label || ACTIVE_DAY_KEY;
+      header.innerHTML = `<b>${dayLabel}</b><div class="note">${
+        canBookNow() ? "Bookings are open for today." : "Bookings are view-only right now (not the correct day, or week is locked)."
+      }</div>`;
+      root.appendChild(header);
+
+      EQUIPMENT.forEach((name, i) => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `<b>${name}</b>`;
+
+        const row = document.createElement("div");
+        row.className = "row";
+
+        const data = state.get(i) || { slots: {} };
+
+        SLOT_MINUTES.forEach((m) => {
+          const t = fmt(m);
+          const bookedBy = data.slots?.[t];
+
+          const btn = document.createElement("button");
+          btn.className = "slot";
+          btn.textContent = bookedBy ? `${t} ✓` : t;
+
+          // Disable if booked OR cannot book now
+          btn.disabled = !!bookedBy || !canBookNow();
+
+          btn.onclick = async () => {
+            if (!canBookNow()) return;
+
+            const coach = prompt(`Book "${name}" on ${dayLabel} at ${t}\nEnter your name:`)?.trim();
+            if (!coach) return;
+
+            try {
+              await runTransaction(db, async (tx) => {
+                // Enforce lock inside the transaction too
+                if (VIEW_WEEK !== CURRENT_WEEK) throw new Error("This week is locked.");
+                if (!isDayBookableToday(ACTIVE_DAY_KEY)) throw new Error("Bookings are only allowed on the actual day (Tue/Thu).");
+
+                const ref = docRef(i);
+                const snap = await tx.get(ref);
+                const current = snap.exists()
+                  ? snap.data()
+                  : { equipment: name, week: VIEW_WEEK, day: ACTIVE_DAY_KEY, slots: {} };
+
+                const slotsObj = current.slots || {};
+                if (slotsObj[t]) throw new Error(`Already booked by ${slotsObj[t]}`);
+                slotsObj[t] = coach;
+
+                tx.set(ref, { equipment: name, week: VIEW_WEEK, day: ACTIVE_DAY_KEY, slots: slotsObj }, { merge: true });
+              });
+            } catch (e) {
+              alert(e?.message || "Could not book. Please try again.");
+            }
+          };
+
+          row.appendChild(btn);
+        });
+
+        card.appendChild(row);
+
+        const who = document.createElement("div");
+        who.className = "who";
+        const bookedList = Object.entries(data.slots || {})
+          .sort((a,b)=>a[0].localeCompare(b[0]))
+          .map(([t,coach]) => `${t} – ${coach}`)
+          .join(" • ");
+        who.textContent = bookedList ? `Booked: ${bookedList}` : "Booked: none";
+        card.appendChild(who);
+
+        root.appendChild(card);
+      });
+    }
+
+    // Live updates: we must resubscribe when tab/day changes
+    let unsubscribers = [];
+    function subscribeAll() {
+      unsubscribers.forEach(fn => fn && fn());
+      unsubscribers = [];
+
+      state.clear();
+
+      EQUIPMENT.forEach((_, i) => {
+        const unsub = onSnapshot(docRef(i), (snap) => {
+          state.set(i, snap.exists() ? snap.data() : { equipment: EQUIPMENT[i], week: VIEW_WEEK, day: ACTIVE_DAY_KEY, slots: {} });
+          render();
+        });
+        unsubscribers.push(unsub);
+      });
+      render();
+    }
+
+    // Re-subscribe when day changes (tabs do history.replaceState; hook into it)
+    const origReplace = history.replaceState.bind(history);
+    history.replaceState = (...args) => { origReplace(...args); subscribeAll(); };
+
+    // Network pill + service worker
+    const net = document.getElementById("netPill");
+    function updateNet() {
+      const online = navigator.onLine;
+      net.textContent = online ? "Online" : "Offline (view only)";
+      net.className = "pill " + (online ? "ok" : "off");
+    }
+    window.addEventListener("online", updateNet);
+    window.addEventListener("offline", updateNet);
+    updateNet();
+
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js");
+
+    subscribeAll();
+  </script>
+</body>
+</html>
