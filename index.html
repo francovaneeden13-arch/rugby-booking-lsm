@@ -7,51 +7,237 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0b5">
   <style>
-    body { font-family: system-ui, Arial; margin: 16px; }
-    h1 { margin: 0 0 6px; }
-    .sub { color:#555; margin: 0 0 16px; }
-    .grid { display: grid; gap: 12px; }
-    .card { border: 1px solid #ddd; border-radius: 12px; padding: 12px; }
-    .row { display:flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    button.slot {
-      border: 1px solid #ccc; border-radius: 10px; padding: 10px 12px;
-      background: #fff; cursor: pointer;
+    :root{
+      --bg1:#0ea5e9;
+      --bg2:#22c55e;
+      --bg3:#a855f7;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#475569;
+      --border:rgba(15,23,42,.10);
+      --shadow: 0 10px 30px rgba(2,6,23,.10);
+      --shadow2: 0 6px 18px rgba(2,6,23,.08);
+      --radius: 18px;
     }
-    button.slot[disabled] { cursor:not-allowed; opacity:.6; }
-    .who { font-size: 12px; color:#444; margin-top: 6px; line-height: 1.35; }
-    .topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
-    .pill { font-size: 12px; padding: 4px 8px; border-radius: 999px; border:1px solid #ddd; white-space: nowrap; }
-    .pill.ok { border-color:#8c8; }
-    .pill.off { border-color:#f99; }
-    .pill.lock { border-color:#f90; }
-    .pill.day { border-color:#88f; }
-    .meta { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-    .tabs { display:flex; gap:8px; flex-wrap:wrap; margin: 12px 0; }
-    .tab { border:1px solid #ddd; border-radius:999px; padding:8px 12px; cursor:pointer; background:#fff; }
-    .tab.active { border-color:#000; }
-    .smallbtn { border:1px solid #ddd; border-radius:10px; padding:8px 10px; background:#fff; cursor:pointer; }
-    .note { font-size: 12px; color:#444; margin-top: 6px; }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 0%, rgba(14,165,233,.28), transparent 55%),
+        radial-gradient(900px 600px at 80% 10%, rgba(168,85,247,.22), transparent 55%),
+        radial-gradient(900px 600px at 50% 100%, rgba(34,197,94,.18), transparent 55%),
+        #f8fafc;
+      min-height:100vh;
+    }
+
+    .container{
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .hero{
+      position: relative;
+      overflow:hidden;
+      border-radius: 24px;
+      padding: 18px 18px 16px;
+      color: white;
+      background: linear-gradient(135deg, var(--bg1), var(--bg2) 55%, var(--bg3));
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+    .hero::after{
+      content:"";
+      position:absolute;
+      inset:-80px -80px auto auto;
+      width: 280px;
+      height: 280px;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), transparent 60%);
+      transform: rotate(25deg);
+      pointer-events:none;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    h1{
+      margin:0 0 6px;
+      font-size: 22px;
+      line-height: 1.1;
+      letter-spacing: .2px;
+    }
+
+    .sub{
+      margin:0;
+      color: rgba(255,255,255,.88);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .meta{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top: 10px;
+    }
+
+    .pill{
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.28);
+      background: rgba(255,255,255,.12);
+      color: rgba(255,255,255,.95);
+      backdrop-filter: blur(10px);
+      white-space: nowrap;
+    }
+    .pill.ok{ box-shadow: inset 0 0 0 1px rgba(255,255,255,.16); }
+    .pill.off{ border-color: rgba(255,180,180,.55); }
+    .pill.lock{ border-color: rgba(255,205,120,.65); }
+    .pill.day{ border-color: rgba(200,210,255,.65); }
+
+    .smallbtn{
+      border: 0;
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,.16);
+      color: white;
+      font-weight: 600;
+      cursor:pointer;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
+      transition: transform .06s ease, background .15s ease;
+      white-space: nowrap;
+    }
+    .smallbtn:hover{ background: rgba(255,255,255,.22); }
+    .smallbtn:active{ transform: translateY(1px); }
+
+    .note{
+      font-size: 12px;
+      color: rgba(255,255,255,.9);
+      margin-top: 8px;
+    }
+
+    .tabs{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin: 12px 0 14px;
+    }
+    .tab{
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 10px 14px;
+      cursor: pointer;
+      background: rgba(255,255,255,.8);
+      backdrop-filter: blur(6px);
+      color: var(--text);
+      box-shadow: var(--shadow2);
+      transition: transform .06s ease, box-shadow .15s ease;
+      font-weight: 650;
+    }
+    .tab:hover{ transform: translateY(-1px); }
+    .tab.active{
+      border-color: rgba(14,165,233,.35);
+      box-shadow: 0 10px 24px rgba(14,165,233,.18);
+      background: linear-gradient(135deg, rgba(14,165,233,.18), rgba(34,197,94,.14));
+    }
+
+    .grid{
+      display:grid;
+      gap: 14px;
+    }
+
+    .card{
+      background: rgba(255,255,255,.82);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow2);
+      backdrop-filter: blur(8px);
+    }
+
+    .card b{
+      font-size: 14px;
+    }
+
+    .row{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    button.slot{
+      border: 1px solid rgba(15,23,42,.12);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: white;
+      cursor: pointer;
+      font-weight: 650;
+      color: var(--text);
+      box-shadow: 0 8px 16px rgba(2,6,23,.06);
+      transition: transform .06s ease, box-shadow .15s ease, opacity .15s ease;
+    }
+    button.slot:hover{ transform: translateY(-1px); box-shadow: 0 10px 20px rgba(2,6,23,.10); }
+    button.slot:active{ transform: translateY(0px); }
+
+    button.slot[disabled]{
+      cursor: not-allowed;
+      opacity: .60;
+      box-shadow: none;
+      background: rgba(241,245,249,.9);
+    }
+
+    .who{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 10px;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 520px){
+      .container{ padding: 14px; }
+      h1{ font-size: 20px; }
+      button.slot{ padding: 10px 10px; }
+    }
   </style>
 </head>
+
 <body>
-  <div class="topbar">
-    <div>
-      <h1>Rugby Equipment Booking</h1>
-      <p class="sub">Booking days: <b>Tuesday</b> and <b>Thursday</b>. Slots: 14:00–17:00 (30 min). Weekly reset. Past weeks locked.</p>
-      <div class="meta">
-        <span class="pill" id="weekPill">Week: …</span>
-        <span class="pill" id="lockPill">…</span>
-        <span class="pill day" id="dayPill">Day: …</span>
-        <span class="pill" id="netPill">…</span>
+  <div class="container">
+    <div class="hero">
+      <div class="topbar">
+        <div>
+          <h1>Rugby Equipment Booking</h1>
+          <p class="sub">
+            Booking days: <b>Tuesday</b> and <b>Thursday</b>. Slots: 14:00–17:00 (30 min).
+            Weekly reset. Locked at Monday 00:00.
+          </p>
+
+          <div class="meta">
+            <span class="pill" id="weekPill">Week: …</span>
+            <span class="pill" id="lockPill">…</span>
+            <span class="pill day" id="dayPill">Day: …</span>
+            <span class="pill" id="netPill">…</span>
+          </div>
+
+          <div class="note" id="todayNote"></div>
+        </div>
+
+        <button class="smallbtn" id="shareBtn">Share link</button>
       </div>
-      <div class="note" id="todayNote"></div>
     </div>
-    <button class="smallbtn" id="shareBtn">Share link</button>
+
+    <div class="tabs" id="dayTabs"></div>
+    <div id="app" class="grid"></div>
   </div>
-
-  <div class="tabs" id="dayTabs"></div>
-
-  <div id="app" class="grid"></div>
 
   <script type="module">
     // 1) EDIT THIS: equipment list
@@ -83,15 +269,29 @@
     const SLOT_MINUTES = slotMinutes();
     const fmt = (m) => String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
 
-    // 4) ISO helpers (week + weekday)
-    function isoWeekKey(date = new Date()) {
-      const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-      const day = d.getUTCDay() || 7; // Mon=1..Sun=7
-      d.setUTCDate(d.getUTCDate() + 4 - day); // Thursday anchor
-      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-      const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-      return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2,"0")}`;
+    // 4) Week window: OPEN from Monday 00:00 until next Monday 00:00
+    function weekStartMondayLocal(date = new Date()) {
+      const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const dow = d.getDay(); // Sun=0..Sat=6
+      const diffToMonday = (dow === 0 ? -6 : 1 - dow); // go back to Monday
+      d.setDate(d.getDate() + diffToMonday);
+      d.setHours(0, 0, 0, 0); // Monday 00:00
+      return d;
     }
+
+    function addDays(date, days) {
+      const d = new Date(date);
+      d.setDate(d.getDate() + days);
+      return d;
+    }
+
+    function ymd(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth()+1).padStart(2,"0");
+      const d = String(date.getDate()).padStart(2,"0");
+      return `${y}-${m}-${d}`;
+    }
+
     function isoWeekdayLocal(date = new Date()) {
       const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       const dow = d.getDay(); // Sun=0..Sat=6
@@ -99,22 +299,33 @@
     }
 
     const now = new Date();
-    const CURRENT_WEEK = isoWeekKey(now);
+    const WEEK_START = weekStartMondayLocal(now);     // this week's Monday 00:00
+    const NEXT_WEEK_START = addDays(WEEK_START, 7);   // next Monday 00:00
     const currentIsoDay = isoWeekdayLocal(now);
 
     // Optional URL params:
-    // ?week=2026-W04&day=TUE
+    // ?week=YYYY-MM-DD&day=TUE   (week = Monday date for that week)
     const params = new URLSearchParams(location.search);
-    const VIEW_WEEK = params.get("week") || CURRENT_WEEK;
+    const VIEW_WEEK = params.get("week") || ymd(WEEK_START);
+
+    // Parse the viewed week start
+    const viewWeekStart = (() => {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(VIEW_WEEK);
+      if (!m) return WEEK_START;
+      const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+      d.setHours(0,0,0,0);
+      return d;
+    })();
+
+    // Week is editable ONLY if it's the current week window (locks at Monday 00:00)
+    const isWeekOpen = (viewWeekStart.getTime() === WEEK_START.getTime()) && (now < NEXT_WEEK_START);
+    const isWeekLocked = !isWeekOpen;
 
     const requestedDayKey = params.get("day");
-    const defaultDayKey =
-      (BOOKING_DAYS.find(d => d.isoDay === currentIsoDay)?.key) || "TUE";
+    const defaultDayKey = (BOOKING_DAYS.find(d => d.isoDay === currentIsoDay)?.key) || "TUE";
     let ACTIVE_DAY_KEY = (BOOKING_DAYS.some(d => d.key === requestedDayKey) ? requestedDayKey : defaultDayKey);
 
-    const isWeekLocked = VIEW_WEEK !== CURRENT_WEEK;
-
-    // If viewing current week, only allow booking on Tue/Thu (and only on that selected day tab)
+    // Only allow booking on Tue/Thu AND only on the actual day
     function isDayBookableToday(dayKey) {
       const def = BOOKING_DAYS.find(d => d.key === dayKey);
       if (!def) return false;
@@ -127,7 +338,12 @@
     lockPill.textContent = isWeekLocked ? "Locked (view only)" : "Open week";
     lockPill.className = "pill " + (isWeekLocked ? "lock" : "ok");
 
-    // Today note (useful for “we can start today”)
+    function setDayPill() {
+      const d = BOOKING_DAYS.find(x => x.key === ACTIVE_DAY_KEY);
+      document.getElementById("dayPill").textContent = `Day: ${d ? d.label : ACTIVE_DAY_KEY}`;
+    }
+
+    // Today note
     const todayFmt = now.toLocaleDateString(undefined, { weekday:"long", year:"numeric", month:"long", day:"numeric" });
     const nextBookable =
       currentIsoDay <= 2 ? "Tuesday" :
@@ -135,7 +351,7 @@
     document.getElementById("todayNote").textContent =
       `Today is ${todayFmt}. Booking days are Tuesday/Thursday. Next bookable day: ${nextBookable}.`;
 
-    // Share button (shares current-week link)
+    // Share button (shares clean link)
     document.getElementById("shareBtn").onclick = async () => {
       const base = location.origin + location.pathname;
       try {
@@ -158,28 +374,24 @@
           setDayPill();
           renderTabs();
           render();
-          // keep URL tidy for sharing within staff if needed
           history.replaceState(null, "", `?week=${encodeURIComponent(VIEW_WEEK)}&day=${encodeURIComponent(ACTIVE_DAY_KEY)}`);
         };
         tabsEl.appendChild(b);
       });
     }
-    function setDayPill() {
-      const d = BOOKING_DAYS.find(x => x.key === ACTIVE_DAY_KEY);
-      document.getElementById("dayPill").textContent = `Day: ${d ? d.label : ACTIVE_DAY_KEY}`;
-    }
+
     setDayPill();
     renderTabs();
 
-    // 5) Firebase config (paste yours)
+    // 5) Firebase config (yours)
     const firebaseConfig = {
       apiKey: "AIzaSyAdL6uRoDFjETPISecWgM83JNPwnJk-lb8",
-  authDomain: "rugby-equipment-booking.firebaseapp.com",
-  projectId: "rugby-equipment-booking",
-  storageBucket: "rugby-equipment-booking.firebasestorage.app",
-  messagingSenderId: "248587029060",
-  appId: "1:248587029060:web:63fcd7199beaea82b1ca11",
-  measurementId: "G-T86Y3LB50Z"
+      authDomain: "rugby-equipment-booking.firebaseapp.com",
+      projectId: "rugby-equipment-booking",
+      storageBucket: "rugby-equipment-booking.firebasestorage.app",
+      messagingSenderId: "248587029060",
+      appId: "1:248587029060:web:63fcd7199beaea82b1ca11",
+      measurementId: "G-T86Y3LB50Z"
     };
 
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -188,18 +400,17 @@
     const appFb = initializeApp(firebaseConfig);
     const db = getFirestore(appFb);
 
-    // Doc id includes week + day + equipment index:
-    // bookings/{week}_{day}_{index} -> { equipment, week, day, slots: { "14:00": "Coach", ... } }
+    // Doc id includes week(Monday date) + day + equipment index:
+    // bookings/{YYYY-MM-DD}_{day}_{index}
     const docId = (i) => `${VIEW_WEEK}_${ACTIVE_DAY_KEY}_${i}`;
     const docRef = (i) => doc(db, "bookings", docId(i));
 
     const root = document.getElementById("app");
-    const state = new Map(); // i -> data
+    const state = new Map();
 
     function canBookNow() {
       if (isWeekLocked) return false;
-      // Only allow booking if today matches the active day (Tue/Thu)
-      return isDayBookableToday(ACTIVE_DAY_KEY);
+      return isDayBookableToday(ACTIVE_DAY_KEY); // only Tue/Thu and only on that actual day
     }
 
     function render() {
@@ -208,8 +419,10 @@
       const header = document.createElement("div");
       header.className = "card";
       const dayLabel = BOOKING_DAYS.find(d => d.key === ACTIVE_DAY_KEY)?.label || ACTIVE_DAY_KEY;
-      header.innerHTML = `<b>${dayLabel}</b><div class="note">${
-        canBookNow() ? "Bookings are open for today." : "Bookings are view-only right now (not the correct day, or week is locked)."
+      header.innerHTML = `<b>${dayLabel}</b><div class="who">${
+        canBookNow()
+          ? "Bookings are open for today."
+          : (isWeekLocked ? "This week is locked (locks at Monday 00:00)." : "Bookings are view-only right now (not the correct day).")
       }</div>`;
       root.appendChild(header);
 
@@ -230,8 +443,6 @@
           const btn = document.createElement("button");
           btn.className = "slot";
           btn.textContent = bookedBy ? `${t} ✓` : t;
-
-          // Disable if booked OR cannot book now
           btn.disabled = !!bookedBy || !canBookNow();
 
           btn.onclick = async () => {
@@ -242,8 +453,7 @@
 
             try {
               await runTransaction(db, async (tx) => {
-                // Enforce lock inside the transaction too
-                if (VIEW_WEEK !== CURRENT_WEEK) throw new Error("This week is locked.");
+                if (isWeekLocked) throw new Error("Bookings lock at Monday midnight.");
                 if (!isDayBookableToday(ACTIVE_DAY_KEY)) throw new Error("Bookings are only allowed on the actual day (Tue/Thu).");
 
                 const ref = docRef(i);
@@ -281,12 +491,11 @@
       });
     }
 
-    // Live updates: we must resubscribe when tab/day changes
+    // Live updates: resubscribe when day changes
     let unsubscribers = [];
     function subscribeAll() {
       unsubscribers.forEach(fn => fn && fn());
       unsubscribers = [];
-
       state.clear();
 
       EQUIPMENT.forEach((_, i) => {
@@ -299,7 +508,7 @@
       render();
     }
 
-    // Re-subscribe when day changes (tabs do history.replaceState; hook into it)
+    // Re-subscribe when tabs change
     const origReplace = history.replaceState.bind(history);
     history.replaceState = (...args) => { origReplace(...args); subscribeAll(); };
 
