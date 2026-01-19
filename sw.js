@@ -1,4 +1,4 @@
-const CACHE = "rugby-booking-v6";
+const CACHE = "rugby-booking-v9";
 
 const ASSETS = [
   "./",
