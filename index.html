@@ -43,7 +43,15 @@
       background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), transparent 60%);
       transform: rotate(25deg); pointer-events:none;
     }
-    .topbar{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+
+    /* ✅ MOBILE FIX: topbar stacks on small screens */
+    .topbar{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+
     h1{ margin:0 0 6px; font-size:22px; line-height:1.1; letter-spacing:.2px; }
     .sub{ margin:0; color:rgba(255,255,255,.88); font-size:13px; line-height:1.35; }
     .meta{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
@@ -60,11 +68,17 @@
     .pill.lock{ border-color: rgba(255,205,120,.65); }
     .pill.day{ border-color: rgba(200,210,255,.65); }
 
-    .actions{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap; /* allow wrap so buttons never cut off */
+      justify-content:flex-end;
+    }
+
     .smallbtn{
       border:0; border-radius:14px; padding:10px 12px;
       background: rgba(255,255,255,.16); color:white;
-      font-weight:800; cursor:pointer;
+      font-weight:900; cursor:pointer;
       box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
       transition: transform .06s ease, background .15s ease;
       white-space: nowrap;
@@ -82,7 +96,7 @@
       backdrop-filter: blur(6px); color: var(--text);
       box-shadow: var(--shadow2);
       transition: transform .06s ease, box-shadow .15s ease;
-      font-weight:800;
+      font-weight:900;
     }
     .tab:hover{ transform: translateY(-1px); }
     .tab.active{
@@ -114,7 +128,7 @@
       padding: 10px 12px;
       background: white;
       cursor: pointer;
-      font-weight: 900;
+      font-weight: 950;
       color: var(--text);
       box-shadow: 0 8px 16px rgba(2,6,23,.06);
       transition: transform .06s ease, box-shadow .15s ease, opacity .15s ease;
@@ -129,6 +143,14 @@
     }
 
     .who{ font-size:12px; color: var(--muted); margin-top:10px; line-height:1.45; }
+
+    /* ✅ PHONE: stack header + wrap buttons into rows */
+    @media (max-width: 680px){
+      .topbar{ flex-direction: column; align-items: stretch; }
+      .actions{ width:100%; justify-content:flex-start; }
+      .smallbtn{ flex: 1 1 140px; text-align:center; }
+    }
+
     @media (max-width: 520px){
       .container{ padding:14px; }
       h1{ font-size:20px; }
@@ -159,10 +181,12 @@
           <div class="note" id="todayNote"></div>
         </div>
 
+        <!-- Order optimized for mobile (Share first) -->
         <div class="actions">
+          <button class="smallbtn" id="shareBtn">Share link</button>
           <button class="smallbtn" id="prevWeekBtn">◀ Week</button>
           <button class="smallbtn" id="nextWeekBtn">Week ▶</button>
-          <button class="smallbtn" id="shareBtn">Share link</button>
+          <button class="smallbtn" id="clearMineBtn">Clear my bookings</button>
         </div>
       </div>
     </div>
@@ -177,7 +201,7 @@
     // =========================
     const CUTOFF_HOURS = 3;
 
-    // 1) EDIT THIS: equipment list + stock per item
+    // ✅ EDIT THIS: equipment list + stock per item
     const EQUIPMENT = [
       { name: "Rugby balls (set)", stock: 6 },
       { name: "Cones (bag)", stock: 4 },
@@ -189,13 +213,12 @@
       { name: "Pump + needles", stock: 1 }
     ];
 
-    // 2) Allowed booking days (Tue/Thu)
     const BOOKING_DAYS = [
       { key: "TUE", label: "Tuesday" },
       { key: "THU", label: "Thursday" }
     ];
 
-    // 3) Time slots: 14:00 to 17:00 every 30 minutes
+    // Slots 14:00–17:00 every 30 minutes
     function slotMinutes() {
       const out = [];
       const start = 14 * 60, end = 17 * 60;
@@ -263,7 +286,7 @@
 
     // =========================
     // URL PARAMS (week + day)
-    // week is the Monday date: YYYY-MM-DD
+    // week = Monday date YYYY-MM-DD
     // =========================
     const params = new URLSearchParams(location.search);
 
@@ -276,12 +299,12 @@
     const requestedDayKey = params.get("day");
     let ACTIVE_DAY_KEY = (BOOKING_DAYS.some(d => d.key === requestedDayKey) ? requestedDayKey : "TUE");
 
-    // Lock ONLY past weeks. Current week + future weeks are bookable (with cutoff rules for current week).
+    // Past weeks locked; current+future bookable (with cutoff for current)
     const isWeekLocked = viewWeekStart.getTime() < CURRENT_WEEK_START.getTime();
     const isCurrentWeek = viewWeekStart.getTime() === CURRENT_WEEK_START.getTime();
 
     // =========================
-    // UI PILL SETUP
+    // UI PILLS
     // =========================
     const weekPill = document.getElementById("weekPill");
     const lockPill = document.getElementById("lockPill");
@@ -314,7 +337,7 @@
       `Today is ${todayFmt}. Future weeks: book anytime. This week: closes ${CUTOFF_HOURS} hours before slot time.`;
 
     // =========================
-    // WEEK NAV BUTTONS
+    // WEEK NAV
     // =========================
     function goToWeek(mondayDate) {
       const week = ymd(mondayDate);
@@ -326,7 +349,7 @@
     document.getElementById("prevWeekBtn").onclick = () => goToWeek(addDays(viewWeekStart, -7));
     document.getElementById("nextWeekBtn").onclick = () => goToWeek(addDays(viewWeekStart, 7));
 
-    // Share button (share clean base link)
+    // Share base link
     document.getElementById("shareBtn").onclick = async () => {
       const base = location.origin + location.pathname;
       try {
@@ -361,7 +384,7 @@
     renderTabs();
 
     // =========================
-    // BOOKING RULES
+    // RULES
     // =========================
     function canModifySlot(dayKey, timeHHMM) {
       if (isWeekLocked) return false;
@@ -377,12 +400,22 @@
       return nowDate() < cutoff;
     }
 
-    // Normalize slot value to an array of {name, qty}
+    // Slots store: array of {name, qty}
     function normalizeSlotValue(v) {
       if (Array.isArray(v)) return v.filter(x => x && typeof x.name === "string" && Number.isFinite(Number(x.qty)));
-      // If old data exists as string: treat as 1
-      if (typeof v === "string" && v.trim()) return [{ name: v.trim(), qty: 1 }];
+      if (typeof v === "string" && v.trim()) return [{ name: v.trim(), qty: 1 }]; // legacy support
       return [];
+    }
+
+    function compactBookings(arr) {
+      const m = new Map();
+      for (const x of arr) {
+        const n = (x.name || "").trim();
+        const q = Math.max(0, Number(x.qty) || 0);
+        if (!n || !q) continue;
+        m.set(n, (m.get(n) || 0) + q);
+      }
+      return Array.from(m.entries()).map(([name, qty]) => ({ name, qty }));
     }
 
     function sumQty(arr) {
@@ -394,20 +427,8 @@
       return arr.reduce((acc, x) => acc + ((x.name === n) ? (Number(x.qty) || 0) : 0), 0);
     }
 
-    function compactBookings(arr) {
-      // Merge same-name entries into one to keep data clean
-      const m = new Map();
-      for (const x of arr) {
-        const n = (x.name || "").trim();
-        const q = Math.max(0, Number(x.qty) || 0);
-        if (!n || !q) continue;
-        m.set(n, (m.get(n) || 0) + q);
-      }
-      return Array.from(m.entries()).map(([name, qty]) => ({ name, qty }));
-    }
-
     // =========================
-    // FIREBASE (your config)
+    // FIREBASE
     // =========================
     const firebaseConfig = {
       apiKey: "AIzaSyAdL6uRoDFjETPISecWgM83JNPwnJk-lb8",
@@ -425,7 +446,6 @@
     const appFb = initializeApp(firebaseConfig);
     const db = getFirestore(appFb);
 
-    // Doc id: week(Monday date) + day + equipment index
     // bookings/{YYYY-MM-DD}_{day}_{index}
     const docId = (i) => `${VIEW_WEEK}_${ACTIVE_DAY_KEY}_${i}`;
     const docRef = (i) => doc(db, "bookings", docId(i));
@@ -468,7 +488,7 @@
           const t = fmt(m);
           const allowed = canModifySlot(ACTIVE_DAY_KEY, t);
 
-          const slotArr = normalizeSlotValue(data.slots?.[t]);
+          const slotArr = compactBookings(normalizeSlotValue(data.slots?.[t]));
           const bookedTotal = sumQty(slotArr);
           const remaining = Math.max(0, equip.stock - bookedTotal);
           const isFull = remaining <= 0;
@@ -477,8 +497,6 @@
           btn.className = "slot" + (isFull ? " full" : "");
           btn.textContent = isFull ? `${t} (Full)` : `${t} (${remaining} left)`;
 
-          // allow click if:
-          // - rules allow modification AND (either remaining > 0 OR there is something booked to cancel)
           const hasAnyBooking = bookedTotal > 0;
           btn.disabled = !allowed || (!hasAnyBooking && remaining <= 0);
 
@@ -493,10 +511,9 @@
             )?.trim();
             if (!name) return;
 
-            // Determine current bookings for this slot
-            const currentSlot = compactBookings(normalizeSlotValue(state.get(i)?.slots?.[t]));
+            const currentSlot = slotArr; // already compacted
             const already = qtyBookedByName(currentSlot, name);
-            const curBookedTotal = sumQty(currentSlot);
+            const curBookedTotal = bookedTotal;
             const curRemaining = Math.max(0, equip.stock - curBookedTotal);
 
             let action = "BOOK";
@@ -526,15 +543,17 @@
 
                   const ref = docRef(i);
                   const snap = await tx.get(ref);
-                  const docData = snap.exists() ? snap.data() : { equipment: equip.name, week: VIEW_WEEK, day: ACTIVE_DAY_KEY, slots: {} };
-                  const slotsObj = docData.slots || {};
+                  const docData = snap.exists()
+                    ? snap.data()
+                    : { equipment: equip.name, week: VIEW_WEEK, day: ACTIVE_DAY_KEY, slots: {} };
 
+                  const slotsObj = docData.slots || {};
                   const slotArrTx = compactBookings(normalizeSlotValue(slotsObj[t]));
                   const bookedTotalTx = sumQty(slotArrTx);
                   const remainingTx = Math.max(0, equip.stock - bookedTotalTx);
+
                   if (qty > remainingTx) throw new Error(`Only ${remainingTx} left for this slot.`);
 
-                  // add booking
                   slotArrTx.push({ name, qty });
                   slotsObj[t] = compactBookings(slotArrTx);
 
@@ -566,17 +585,15 @@
                 const docData = snap.data();
                 const slotsObj = docData.slots || {};
                 const slotArrTx = compactBookings(normalizeSlotValue(slotsObj[t]));
-
                 const alreadyTx = qtyBookedByName(slotArrTx, name);
+
                 if (alreadyTx < qtyCancel) throw new Error("Booking changed. Please try again.");
 
-                // reduce qty for this name
                 const updated = [];
                 for (const x of slotArrTx) {
                   if (x.name !== name) { updated.push(x); continue; }
                   const newQty = x.qty - qtyCancel;
                   if (newQty > 0) updated.push({ name: x.name, qty: newQty });
-                  // qtyCancel fully applied because slotArrTx is compact (one entry per name)
                 }
 
                 slotsObj[t] = compactBookings(updated);
@@ -595,19 +612,18 @@
         const who = document.createElement("div");
         who.className = "who";
 
-        // Show a readable list: time – name (qty), name (qty) …
         const lines = [];
-        for (const m of SLOT_MINUTES) {
-          const t = fmt(m);
-          const slotArr = compactBookings(normalizeSlotValue(data.slots?.[t]));
-          if (!slotArr.length) continue;
+        for (const mm of SLOT_MINUTES) {
+          const tt = fmt(mm);
+          const slotArr2 = compactBookings(normalizeSlotValue(data.slots?.[tt]));
+          if (!slotArr2.length) continue;
 
-          const parts = slotArr
+          const parts = slotArr2
             .sort((a,b)=>a.name.localeCompare(b.name))
             .map(x => `${x.name} (${x.qty})`)
             .join(", ");
 
-          lines.push(`${t} – ${parts}`);
+          lines.push(`${tt} – ${parts}`);
         }
 
         who.textContent = lines.length ? `Booked: ${lines.join(" • ")}` : "Booked: none";
@@ -618,7 +634,75 @@
     }
 
     // =========================
-    // LIVE UPDATES (FireStore)
+    // CLEAR MY BOOKINGS (coach only)
+    // =========================
+    async function clearMyBookings(scope) {
+      if (isWeekLocked) {
+        alert("Past weeks are locked and cannot be changed.");
+        return;
+      }
+
+      const coachName = prompt("Enter your name to clear ONLY your bookings:")?.trim();
+      if (!coachName) return;
+
+      const daysToClear = (scope === "DAY") ? [ACTIVE_DAY_KEY] : BOOKING_DAYS.map(d => d.key);
+
+      let removed = 0;
+      let skipped = 0;
+
+      for (const dayKey of daysToClear) {
+        for (let i = 0; i < EQUIPMENT.length; i++) {
+          const ref = doc(db, "bookings", `${VIEW_WEEK}_${dayKey}_${i}`);
+
+          try {
+            await runTransaction(db, async (tx) => {
+              const snap = await tx.get(ref);
+              if (!snap.exists()) return;
+
+              const data = snap.data();
+              const slots = data.slots || {};
+              let changed = false;
+
+              for (const [time, value] of Object.entries(slots)) {
+                const arr = compactBookings(normalizeSlotValue(value));
+                const mine = qtyBookedByName(arr, coachName);
+                if (!mine) continue;
+
+                // Respect cutoff per-slot
+                if (!canModifySlot(dayKey, time)) {
+                  skipped++;
+                  continue;
+                }
+
+                // Remove coach entirely from this slot
+                const updated = arr.filter(x => x.name !== coachName);
+                slots[time] = compactBookings(updated);
+                changed = true;
+                removed += mine;
+              }
+
+              if (changed) tx.set(ref, { slots }, { merge: true });
+            });
+          } catch {
+            // keep going
+          }
+        }
+      }
+
+      let msg = `Done. Removed ${removed} item(s) booked under "${coachName}".`;
+      if (skipped) msg += ` Skipped ${skipped} slot(s) because they are within the 3-hour cutoff.`;
+      alert(msg);
+    }
+
+    document.getElementById("clearMineBtn").onclick = async () => {
+      const clearDay = confirm(
+        "OK = Clear ONLY your bookings for this day (current tab)\nCancel = Clear ONLY your bookings for the full week (Tue + Thu)"
+      );
+      await clearMyBookings(clearDay ? "DAY" : "WEEK");
+    };
+
+    // =========================
+    // LIVE UPDATES
     // =========================
     let unsubscribers = [];
     function subscribeAll() {
@@ -640,7 +724,7 @@
       render();
     }
 
-    // Service worker
+    // Register SW
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./sw.js");
     }
